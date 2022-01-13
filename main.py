@@ -1,9 +1,6 @@
 # Online Python compiler (interpreter) to run Python online.
 # Write Python 3 code in this online editor and run it.
 
-rock_to_number = {'.': 1, ':': 2,  '-': 3, ' ': 0}
-numbers_to_rocks = {v:k for k,v in rock_to_number.items()}
-
 def stack_wall(wall):
     stacked_wall = ['' for i in range(len(wall))]
     n_piles = len(wall[0])
@@ -14,78 +11,76 @@ def stack_wall(wall):
     return stacked_wall
 
 def stack_rock_pile(rocks):
-    tmp, result = [], []
+    result = ''
+    stack = StackedRocks()
     for e in rocks:
-        tmp = stack_rock(rock_to_number[e], tmp)
+        stack.add(e)
         if e == '-':
-            result.extend(sorted(tmp))
-            tmp = []
-    if tmp:
-        result.extend(sorted(tmp))
-    return translate_back(result)
-
-def translate_back(pile):
-    return ''.join([numbers_to_rocks[e] for e in pile])
+            result += stack.pile()
+            stack = StackedRocks()
+    if stack:
+        result += stack.pile()
+    return result
 
 def append_transposed(wall, pile):
     for i in range(len(wall)):
         wall[i] += pile[i]
-        
-# This could be simplified by adding a RocksStack class
-# that would inherit from list which performs that logic
-# when adding a new element
-def stack_rock(rock, stack):
-    if not stack:
-        return [rock]
-    if rock == 1:
-        if stack[0] == 1:
-            stack[0] = 2
-            stack.append(0)
-        else:
-            stack.insert(0, rock)
-        return stack
-    if rock == 2:
-        stack.insert(0, rock)
-    else:
-        stack.append(rock)
-    return stack
+
+class StackedRocks():
+    def __init__(self):
+        self.n_elements = 0
+        self.table = ''
+        self.n_rocks = 0
+
+    def add(self, e):
+        if self.table:
+            raise ValueError("can't add more elements after adding a table (-)")
+        self.n_elements += 1
+        if e == '.':
+            self.n_rocks += 1
+        if e == ':':
+            self.n_rocks += 2
+        if e == "-":
+            self.table = '-'
+
+    def pile(self):
+        n_double = self.n_rocks // 2
+        n_single = self.n_rocks % 2
+        rocks = f"{'.' * n_single}{':' * n_double}"
+        return f"{rocks}{self.table}".rjust(self.n_elements)
 
 import unittest
-class test_stack_rock(unittest.TestCase):
-    def test_stack_rock_with_empty_stack(self):
-        stack = []
-        result = stack_rock(1,stack)
-        self.assertEquals(result, [1])
-    def test_stack_one_rock(self):
-        stack = [1]
-        result = stack_rock(1,stack)
-        self.assertEquals(result, [2,0])
-    def test_add_one_rock(self):
-        stack = [2]
-        result = stack_rock(1,stack)
-        self.assertEquals(result, [1,2]) 
-    def test_add_two_rocks(self):
-        stack = [1]
-        result = stack_rock(2,stack)
-        self.assertEquals(result, [2,1])
-    def test_add_table_or_empty(self):
-        stack = [1]
-        result = stack_rock(3,stack)
-        self.assertEquals(result, [1,3])
+class test_stacked_rock(unittest.TestCase):
+    def test_add(self):
+        stack = StackedRocks()
+        stack.add('.')
+        stack.add('.')
+        stack.add(' ')
+        stack.add(':')
+        stack.add('-')
+        self.assertEqual(stack.pile(), '  ::-')
+
+    def test_exception(self):
+        stack = StackedRocks()
+        with self.assertRaises(ValueError) as ctx:
+            stack.add('.')
+            stack.add('.')
+            stack.add('-')
+            stack.add('.')
 
 class test_stack_rock_pile(unittest.TestCase):
     def test_stack_rocks_no_table(self):
         rocks = ' :. .: '
         result = stack_rock_pile(rocks)
-        self.assertEquals(result, '    :::')
+        self.assertEqual(result, '    :::')
     def test_stack_rocks_with_table(self):
         rocks = ' :.-.: '
         result = stack_rock_pile(rocks)
-        self.assertEquals(result, ' .:- .:')
+        self.assertEqual(result, ' .:- .:')
     def test_stack_rocks_with_tables_only(self):
         rocks = '----'
         result = stack_rock_pile(rocks)
-        self.assertEquals(result, '----')
+        self.assertEqual(result, '----')
 
 class test_stack_wall(unittest.TestCase):
     def test_stack_wall(self):
@@ -100,7 +95,7 @@ class test_stack_wall(unittest.TestCase):
                 " -:-  ",
                 "  :  .",
                 "::: ::"]
-        self.assertEquals(result, expe)
+        self.assertEqual(result, expe)
     
 if __name__ == '__main__':
     unittest.main()
